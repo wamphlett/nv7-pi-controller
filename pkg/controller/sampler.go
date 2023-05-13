@@ -16,6 +16,9 @@ type sample struct {
 }
 
 func (s *sample) Result() float64 {
+	if s.count == 0 || s.sum == 0 {
+		return 0
+	}
 	return float64(s.sum / s.count)
 }
 
