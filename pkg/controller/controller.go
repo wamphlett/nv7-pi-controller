@@ -41,9 +41,10 @@ func (r *targetRange) InRange(input int) bool {
 type Controller struct {
 	currentButton button
 
-	lastTimeIdle time.Time
-	holdDuration time.Duration
-	isHeld       bool
+	lastTimeIdle       time.Time
+	lastButtonRegister time.Time
+	holdDuration       time.Duration
+	isHeld             bool
 
 	targets []*targetRange
 
@@ -125,6 +126,11 @@ func (c *Controller) Shutdown() {
 }
 
 func (c *Controller) poll() {
+	// prevent button debounce
+	if time.Since(c.lastButtonRegister) < time.Millisecond*50 {
+		return
+	}
+
 	// read retry from ads chip
 	keyResult, err := c.buttonKey.ReadRetry(5)
 	if err != nil {
