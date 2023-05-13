@@ -9,6 +9,15 @@ import (
 	"github.com/wamphlett/nv7-pi-controller/config"
 )
 
+type event string
+
+const (
+	EventButtonPress      event = "BUTTON_PRESS"
+	EventButtonHold       event = "BUTTON_HOLD"
+	EventChannelTurnedOff event = "CHANNEL_TURNED_OFF"
+	EventChannelTurnedOn  event = "CHANNEL_TURNED_ON"
+)
+
 type channel string
 
 const (
@@ -57,14 +66,15 @@ type Controller struct {
 
 	close chan (struct{})
 
-	speed      int
-	themeIndex map[channel]int
-	themes     map[channel][]theme
+	channelState map[channel]bool
+	speed        int
+	themeIndex   map[channel]int
+	themes       map[channel][]theme
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
 	c := &Controller{
-		holdDuration: time.Second * 3,
+		holdDuration: time.Second * 2,
 		pollRate:     time.Millisecond * 30,
 		close:        make(chan struct{}),
 		themeIndex: map[channel]int{
@@ -193,11 +203,25 @@ func (c *Controller) nextColour() {
 	c.themes[c.currentChannel][c.themeIndex[c.currentChannel]].nextColour()
 }
 
+func (c *Controller) turnOffChannel() {
+	c.channelState[c.currentChannel] = false
+}
+
+func (c *Controller) turnOnChannel() {
+	c.channelState[c.currentChannel] = true
+}
+
 func (c *Controller) handlePress(button button) {
 	switch button {
 	case ButtonChannel:
 		c.toggleChannel()
 	case ButtonMode:
+		// if the channel is not on, turn it on before changing the theme
+		if !c.channelState[c.currentChannel] {
+			c.turnOnChannel()
+			c.publish(EventChannelTurnedOn, button)
+			break
+		}
 		c.nextTheme()
 	case ButtonSpeed:
 		c.nextSpeed()
@@ -205,11 +229,17 @@ func (c *Controller) handlePress(button button) {
 		c.nextColour()
 	}
 
-	c.publish(button, false)
+	c.publish(EventButtonPress, button)
 }
 
 func (c *Controller) handleHold(button button) {
-	c.publish(button, true)
+	switch button {
+	case ButtonMode:
+		c.turnOffChannel()
+		c.publish(EventChannelTurnedOff, button)
+	}
+
+	c.publish(EventButtonHold, button)
 }
 
 func (c *Controller) toggleChannel() {
@@ -229,10 +259,10 @@ func (c *Controller) setChannel(channel channel) {
 	c.currentChannel = channel
 }
 
-func (c *Controller) publish(button button, isHeld bool) {
+func (c *Controller) publish(event event, button button) {
 	// todo publish to all publishers
 	currentTheme := c.themes[c.currentChannel][c.themeIndex[c.currentChannel]]
-	fmt.Printf("Channel %s: %s. held: %t. state: %v\n", c.currentChannel, button, isHeld, State{
+	fmt.Printf("Channel: %s. event: %s. button: %s. state: %v\n", c.currentChannel, event, button, State{
 		Speed:  c.speed + 1,
 		Theme:  currentTheme.name,
 		Colour: currentTheme.colours[currentTheme.colourIndex],
