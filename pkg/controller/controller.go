@@ -51,11 +51,17 @@ type Controller struct {
 	currentChannel channel
 
 	ledPin rpio.Pin
+
+	pollRate time.Duration
+
+	close chan (struct{})
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
 	c := &Controller{
 		holdDuration: time.Second * 3,
+		pollRate:     time.Millisecond * 10,
+		close:        make(chan struct{}),
 	}
 
 	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.Tolerance)
@@ -95,13 +101,22 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 }
 
 func (c *Controller) Start() {
-	for i := 0; i < 1000; i++ {
-		c.poll()
-		time.Sleep(time.Duration(time.Millisecond * 200))
-	}
+	ticker := time.NewTicker(c.pollRate)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				c.poll()
+			case <-c.close:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }
 
 func (c *Controller) Shutdown() {
+	c.close <- struct{}{}
 	if err := c.buttonKey.Close(); err != nil {
 		fmt.Println(err)
 	}
@@ -115,8 +130,6 @@ func (c *Controller) poll() {
 		c.buttonKey.Close()
 		fmt.Println(err)
 	}
-
-	fmt.Println(keyResult)
 
 	pollTime := time.Now()
 
@@ -182,7 +195,7 @@ func (c *Controller) setChannel(channel channel) {
 
 func (c *Controller) publish(button button, isHeld bool) {
 	// todo publish to all publishers
-	fmt.Printf("PUSH: %s held: %t\n", button, isHeld)
+	fmt.Printf("Channel %s: %s held: %t\n", c.currentChannel, button, isHeld)
 }
 
 func configureButton(b button, targets []int, tolerance int) []*targetRange {
