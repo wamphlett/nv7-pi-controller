@@ -29,10 +29,10 @@ type Config struct {
 type Controller struct {
 	LEDPin int `env:"CONTROLLER_LED_PIN,default=13"`
 
-	ChannelTarget []int `env:"CONTROLLER_CHANNEL_TARGET,default=500,600"`
-	ModeTarget    []int `env:"CONTROLLER_MODE_TARGET,default=500,600"`
-	ColorTarget   []int `env:"CONTROLLER_COLOR_TARGET,default=500,600"`
-	SpeedTarget   []int `env:"CONTROLLER_SPEED_TARGET,default=500,600"`
+	ChannelTarget []int `env:"CONTROLLER_CHANNEL_TARGET,default=61280"`
+	ModeTarget    []int `env:"CONTROLLER_MODE_TARGET,default=62180"`
+	ColorTarget   []int `env:"CONTROLLER_COLOR_TARGET,default=6400"`
+	SpeedTarget   []int `env:"CONTROLLER_SPEED_TARGET,default=62950"`
 
-	TargetRange int `env:"CONTROLLER_TARGET_RANGE,default=150"`
+	Tolerance int `env:"CONTROLLER_TOLERANCE,default=40"`
 }

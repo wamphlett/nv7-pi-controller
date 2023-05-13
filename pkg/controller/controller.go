@@ -14,6 +14,8 @@ const (
 	ButtonNone    button = "NONE"
 	ButtonChannel button = "CHANNEL"
 	ButtonMode    button = "MODE"
+	ButtonSpeed   button = "SPEED"
+	ButtonColour  button = "COLOUR"
 )
 
 type targetRange struct {
@@ -41,8 +43,10 @@ type Controller struct {
 func New(cfg *config.Controller, opts ...Opt) *Controller {
 	c := &Controller{}
 
-	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.TargetRange)
-	c.targets = append(c.targets, configureButton(ButtonMode, cfg.ModeTarget, cfg.TargetRange)...)
+	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.Tolerance)
+	c.targets = append(c.targets, configureButton(ButtonMode, cfg.ModeTarget, cfg.Tolerance)...)
+	c.targets = append(c.targets, configureButton(ButtonColour, cfg.ColorTarget, cfg.Tolerance)...)
+	c.targets = append(c.targets, configureButton(ButtonSpeed, cfg.SpeedTarget, cfg.Tolerance)...)
 
 	for _, opt := range opts {
 		opt(c)
@@ -117,13 +121,13 @@ func (c *Controller) publish(button button, isHeld bool) {
 	fmt.Printf("PUSH: %s held: %t\n", button, isHeld)
 }
 
-func configureButton(b button, targets []int, r int) []*targetRange {
+func configureButton(b button, targets []int, tolerance int) []*targetRange {
 	targetRanges := make([]*targetRange, len(targets))
 	for i, target := range targets {
 		targetRanges[i] = &targetRange{
 			Button: b,
-			lower:  target - r,
-			upper:  target + r,
+			lower:  target - tolerance,
+			upper:  target + tolerance,
 		}
 	}
 	return targetRanges
