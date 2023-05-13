@@ -189,6 +189,10 @@ func (c *Controller) nextTheme() {
 	c.themeIndex[c.currentChannel] = (c.themeIndex[c.currentChannel] + 1) % len(c.themes[c.currentChannel])
 }
 
+func (c *Controller) nextColour() {
+	c.themes[c.currentChannel][c.themeIndex[c.currentChannel]].nextColour()
+}
+
 func (c *Controller) handlePress(button button) {
 	switch button {
 	case ButtonChannel:
@@ -197,6 +201,8 @@ func (c *Controller) handlePress(button button) {
 		c.nextTheme()
 	case ButtonSpeed:
 		c.nextSpeed()
+	case ButtonColour:
+		c.nextColour()
 	}
 
 	c.publish(button, false)
