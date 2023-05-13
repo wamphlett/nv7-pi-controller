@@ -16,6 +16,7 @@ const (
 	EventButtonHold       event = "BUTTON_HOLD"
 	EventChannelTurnedOff event = "CHANNEL_TURNED_OFF"
 	EventChannelTurnedOn  event = "CHANNEL_TURNED_ON"
+	EventStart            event = "START"
 )
 
 type channel string
@@ -81,6 +82,10 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 			ChannelA: 0,
 			ChannelB: 0,
 		},
+		channelState: map[channel]bool{
+			ChannelA: true,
+			ChannelB: true,
+		},
 	}
 
 	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.Tolerance)
@@ -130,6 +135,8 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 
 	// set the current channel to A on start up
 	c.setChannel(ChannelA)
+
+	c.publish(EventStart, ButtonNone)
 
 	return c
 }
