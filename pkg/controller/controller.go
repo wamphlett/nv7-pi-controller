@@ -56,7 +56,7 @@ type Controller struct {
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
 	c := &Controller{
-		holdDuration: time.Second,
+		holdDuration: time.Second * 3,
 	}
 
 	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.Tolerance)
@@ -98,7 +98,7 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 func (c *Controller) Start() {
 	for i := 0; i < 1000; i++ {
 		c.poll()
-		time.Sleep(time.Duration(time.Millisecond * 500))
+		time.Sleep(time.Duration(time.Millisecond * 200))
 	}
 }
 
@@ -167,6 +167,7 @@ func (c *Controller) handleHold(button button) {
 func (c *Controller) toggleChannel() {
 	if c.currentChannel == ChannelA {
 		c.setChannel(ChannelB)
+		return
 	}
 	c.setChannel(ChannelA)
 }
@@ -174,8 +175,9 @@ func (c *Controller) toggleChannel() {
 func (c *Controller) setChannel(channel channel) {
 	if channel == ChannelA {
 		c.ledPin.High()
+	} else {
+		c.ledPin.Low()
 	}
-	c.ledPin.Low()
 	c.currentChannel = channel
 }
 
