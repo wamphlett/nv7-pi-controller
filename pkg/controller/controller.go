@@ -27,6 +27,13 @@ const (
 	ButtonColour  button = "COLOUR"
 )
 
+type buttonRegister struct {
+	registerTime time.Time
+	button       button
+	accuracy     int
+	held         bool
+}
+
 type targetRange struct {
 	Button button
 	upper  int
@@ -38,12 +45,7 @@ func (r *targetRange) InRange(input int) bool {
 }
 
 type Controller struct {
-	currentButton button
-
-	lastTimeIdle       time.Time
-	lastButtonRegister time.Time
-	holdDuration       time.Duration
-	isHeld             bool
+	holdDuration time.Duration
 
 	targets []*targetRange
 
@@ -58,12 +60,14 @@ type Controller struct {
 	close chan (struct{})
 
 	sampler *Sampler
+
+	buttonRegister *buttonRegister
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
 	c := &Controller{
 		holdDuration: time.Second * 3,
-		pollRate:     time.Millisecond * 10,
+		pollRate:     time.Millisecond * 30,
 		close:        make(chan struct{}),
 	}
 
@@ -128,29 +132,30 @@ func (c *Controller) poll() {
 			continue
 		}
 
-		// store the previous button and record the current button
-		previousButton := c.currentButton
-		c.currentButton = target.Button
+		if c.buttonRegister == nil || c.buttonRegister.button != target.Button {
+			c.buttonRegister = &buttonRegister{
+				registerTime: pollTime,
+				button:       target.Button,
+			}
+		}
+		// increase the accuracy
+		c.buttonRegister.accuracy++
 
-		// if the button does not match the previous button, then the button was pressed
-		if target.Button != previousButton {
+		if c.buttonRegister.accuracy == 2 {
 			c.handlePress(target.Button)
-			return
 		}
 
 		// if the button was the same as the previous poll, check if its being held
-		if !c.isHeld && time.Since(c.lastTimeIdle) > c.holdDuration {
+		if !c.buttonRegister.held && time.Since(c.buttonRegister.registerTime) > c.holdDuration {
 			c.handleHold(target.Button)
-			c.isHeld = true
+			c.buttonRegister.held = true
 		}
 
 		return
 	}
 
 	// if we haven't matched a button, set everything back to idle
-	c.currentButton = ButtonNone
-	c.lastTimeIdle = pollTime
-	c.isHeld = false
+	c.buttonRegister = nil
 }
 
 func (c *Controller) handlePress(button button) {

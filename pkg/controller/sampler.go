@@ -34,7 +34,7 @@ func NewSampler() *Sampler {
 	s := &Sampler{
 		currentSample: &sample{},
 		stopSignal:    make(chan bool),
-		pollRate:      time.Millisecond * 2,
+		pollRate:      time.Millisecond * 5,
 	}
 
 	err := ads.HostInit()
