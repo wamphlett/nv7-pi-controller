@@ -181,9 +181,9 @@ func (c *Controller) toggleChannel() {
 
 func (c *Controller) setChannel(channel channel) {
 	if channel == ChannelA {
-		c.ledPin.High()
-	} else {
 		c.ledPin.Low()
+	} else {
+		c.ledPin.High()
 	}
 	c.currentChannel = channel
 }
