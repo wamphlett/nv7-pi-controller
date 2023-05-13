@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/grant-carpenter/go-ads"
 	"github.com/wamphlett/nv7-pi-controller/config"
 )
 
@@ -33,6 +34,8 @@ type Controller struct {
 	isHeld       bool
 
 	targets []*targetRange
+
+	buttonKey *ads.ADS
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
@@ -45,24 +48,48 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 		opt(c)
 	}
 
+	err := ads.HostInit()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	c.buttonKey, err = ads.NewADS("I2C1", 0x48, "")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	c.buttonKey.SetConfigGain(ads.ConfigGain2_3)
+
 	return c
 }
 
 func (c *Controller) Start() {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 1000; i++ {
 		c.poll()
 		time.Sleep(time.Duration(time.Millisecond * 500))
 	}
 }
 
-func (c *Controller) poll() {
+func (c *Controller) Shutdown() {
+	if err := c.buttonKey.Close(); err != nil {
+		fmt.Println(err)
+	}
+}
 
-	pinVoltage := 500
+func (c *Controller) poll() {
+	// read retry from ads chip
+	keyResult, err := c.buttonKey.ReadRetry(5)
+	if err != nil {
+		c.buttonKey.Close()
+		fmt.Println(err)
+	}
+
+	fmt.Println(keyResult)
 
 	pollTime := time.Now()
 
 	for _, target := range c.targets {
-		if !target.InRange(pinVoltage) {
+		if !target.InRange(int(keyResult)) {
 			continue
 		}
 
