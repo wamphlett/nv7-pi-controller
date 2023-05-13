@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -134,7 +135,7 @@ func (c *Controller) poll() {
 	pollTime := time.Now()
 
 	for _, target := range c.targets {
-		if !target.InRange(int(keyResult)) {
+		if !target.InRange(int(math.Round(float64(keyResult) / 32767.0 * 1000.0))) {
 			continue
 		}
 
