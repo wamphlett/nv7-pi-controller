@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"time"
 
@@ -57,6 +56,8 @@ type Controller struct {
 	pollRate time.Duration
 
 	close chan (struct{})
+
+	sampler *Sampler
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
@@ -75,17 +76,8 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 		opt(c)
 	}
 
-	err := ads.HostInit()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	c.buttonKey, err = ads.NewADS("I2C1", 0x48, "")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	c.buttonKey.SetConfigGain(ads.ConfigGain2_3)
+	// start a sampler
+	c.sampler = NewSampler()
 
 	// LED
 	c.ledPin = rpio.Pin(13)
@@ -118,6 +110,8 @@ func (c *Controller) Start() {
 }
 
 func (c *Controller) Shutdown() {
+	// stop the sampler
+	c.sampler.Stop()
 	c.close <- struct{}{}
 	if err := c.buttonKey.Close(); err != nil {
 		fmt.Println(err)
@@ -126,22 +120,11 @@ func (c *Controller) Shutdown() {
 }
 
 func (c *Controller) poll() {
-	// prevent button debounce
-	if time.Since(c.lastButtonRegister) < time.Millisecond*50 {
-		return
-	}
-
-	// read retry from ads chip
-	keyResult, err := c.buttonKey.ReadRetry(5)
-	if err != nil {
-		c.buttonKey.Close()
-		fmt.Println(err)
-	}
-
 	pollTime := time.Now()
+	result := c.sampler.Read()
 
 	for _, target := range c.targets {
-		if !target.InRange(int(math.Round(float64(keyResult) / 32767.0 * 1000.0))) {
+		if !target.InRange(int(result)) {
 			continue
 		}
 
