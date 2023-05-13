@@ -67,6 +67,10 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 		holdDuration: time.Second * 3,
 		pollRate:     time.Millisecond * 30,
 		close:        make(chan struct{}),
+		themeIndex: map[channel]int{
+			ChannelA: 0,
+			ChannelB: 0,
+		},
 	}
 
 	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.Tolerance)
