@@ -2,6 +2,8 @@ github.com/grant-carpenter/go-ads v0.0.0-20230115171951-28413583cf8e h1:9yLgY6P3
 github.com/grant-carpenter/go-ads v0.0.0-20230115171951-28413583cf8e/go.mod h1:2LA6+vc6j2Uf2k1wcyXFA1naAirPCZt/LcR6FKG8K2I=
 github.com/sethvargo/go-envconfig v0.9.0 h1:Q6FQ6hVEeTECULvkJZakq3dZMeBQ3JUpcKMfPQbKMDE=
 github.com/sethvargo/go-envconfig v0.9.0/go.mod h1:Iz1Gy1Sf3T64TQlJSvee81qDhf7YIlt8GMUX6yyNFs0=
+github.com/stianeikeland/go-rpio/v4 v4.6.0 h1:eAJgtw3jTtvn/CqwbC82ntcS+dtzUTgo5qlZKe677EY=
+github.com/stianeikeland/go-rpio/v4 v4.6.0/go.mod h1:A3GvHxC1Om5zaId+HqB3HKqx4K/AqeckxB7qRjxMK7o=
 periph.io/x/conn/v3 v3.7.0 h1:f1EXLn4pkf7AEWwkol2gilCNZ0ElY+bxS4WE2PQXfrA=
 periph.io/x/conn/v3 v3.7.0/go.mod h1:ypY7UVxgDbP9PJGwFSVelRRagxyXYfttVh7hJZUHEhg=
 periph.io/x/host/v3 v3.8.0 h1:T5ojZ2wvnZHGPS4h95N2ZpcCyHnsvH3YRZ1UUUiv5CQ=

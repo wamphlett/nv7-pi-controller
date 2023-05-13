@@ -2,10 +2,19 @@ package controller
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/grant-carpenter/go-ads"
+	"github.com/stianeikeland/go-rpio/v4"
 	"github.com/wamphlett/nv7-pi-controller/config"
+)
+
+type channel string
+
+const (
+	ChannelA channel = "A"
+	ChannelB channel = "B"
 )
 
 type button string
@@ -29,6 +38,7 @@ func (r *targetRange) InRange(input int) bool {
 }
 
 type Controller struct {
+	currentButton  button
 	previousButton button
 
 	lastTimeIdle time.Time
@@ -38,10 +48,16 @@ type Controller struct {
 	targets []*targetRange
 
 	buttonKey *ads.ADS
+
+	currentChannel channel
+
+	ledPin rpio.Pin
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
-	c := &Controller{}
+	c := &Controller{
+		holdDuration: time.Second,
+	}
 
 	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.Tolerance)
 	c.targets = append(c.targets, configureButton(ButtonMode, cfg.ModeTarget, cfg.Tolerance)...)
@@ -64,6 +80,18 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 
 	c.buttonKey.SetConfigGain(ads.ConfigGain2_3)
 
+	// LED
+	c.ledPin = rpio.Pin(13)
+
+	if err := rpio.Open(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	c.ledPin.Output()
+
+	// set the current channel to A on start up
+	c.setChannel(ChannelA)
+
 	return c
 }
 
@@ -78,6 +106,7 @@ func (c *Controller) Shutdown() {
 	if err := c.buttonKey.Close(); err != nil {
 		fmt.Println(err)
 	}
+	rpio.Close()
 }
 
 func (c *Controller) poll() {
@@ -97,23 +126,57 @@ func (c *Controller) poll() {
 			continue
 		}
 
-		if target.Button == c.previousButton {
-			if !c.isHeld && time.Since(c.lastTimeIdle) > c.holdDuration {
-				c.publish(target.Button, true)
-				c.isHeld = true
-			}
+		// store the previous button and record the current button
+		previousButton := c.currentButton
+		c.currentButton = target.Button
+
+		// if the button does not match the previous button, then the button was pressed
+		if target.Button != previousButton {
+			c.handlePress(target.Button)
 			return
 		}
 
-		// todo toggle channel if button is channel
+		// if the button was the same as the previous poll, check if its being held
+		if !c.isHeld && time.Since(c.lastTimeIdle) > c.holdDuration {
+			c.handleHold(target.Button)
+			c.isHeld = true
+		}
 
-		c.publish(target.Button, false)
 		return
 	}
 
+	// if we haven't
 	c.previousButton = ButtonNone
 	c.lastTimeIdle = pollTime
 	c.isHeld = false
+}
+
+func (c *Controller) handlePress(button button) {
+	switch button {
+	case ButtonChannel:
+		c.toggleChannel()
+	}
+
+	c.publish(button, false)
+}
+
+func (c *Controller) handleHold(button button) {
+	c.publish(button, true)
+}
+
+func (c *Controller) toggleChannel() {
+	if c.currentChannel == ChannelA {
+		c.setChannel(ChannelB)
+	}
+	c.setChannel(ChannelA)
+}
+
+func (c *Controller) setChannel(channel channel) {
+	if channel == ChannelA {
+		c.ledPin.High()
+	}
+	c.ledPin.Low()
+	c.currentChannel = channel
 }
 
 func (c *Controller) publish(button button, isHeld bool) {
