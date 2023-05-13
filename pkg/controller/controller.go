@@ -38,8 +38,7 @@ func (r *targetRange) InRange(input int) bool {
 }
 
 type Controller struct {
-	currentButton  button
-	previousButton button
+	currentButton button
 
 	lastTimeIdle time.Time
 	holdDuration time.Duration
@@ -145,8 +144,8 @@ func (c *Controller) poll() {
 		return
 	}
 
-	// if we haven't
-	c.previousButton = ButtonNone
+	// if we haven't matched a button, set everything back to idle
+	c.currentButton = ButtonNone
 	c.lastTimeIdle = pollTime
 	c.isHeld = false
 }

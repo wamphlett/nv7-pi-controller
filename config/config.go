@@ -32,7 +32,7 @@ type Controller struct {
 	ChannelTarget []int `env:"CONTROLLER_CHANNEL_TARGET,default=61280,64660"`
 	ModeTarget    []int `env:"CONTROLLER_MODE_TARGET,default=62180,65200"`
 	ColorTarget   []int `env:"CONTROLLER_COLOR_TARGET,default=64000,760"`
-	SpeedTarget   []int `env:"CONTROLLER_SPEED_TARGET,default=62950,65520"`
+	SpeedTarget   []int `env:"CONTROLLER_SPEED_TARGET,default=62950,65520,10"`
 
 	Tolerance int `env:"CONTROLLER_TOLERANCE,default=40"`
 }
