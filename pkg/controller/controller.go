@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/grant-carpenter/go-ads"
 	"github.com/stianeikeland/go-rpio/v4"
 	"github.com/wamphlett/nv7-pi-controller/config"
 )
@@ -45,23 +44,22 @@ func (r *targetRange) InRange(input int) bool {
 }
 
 type Controller struct {
+	sampler *Sampler
+
 	holdDuration time.Duration
+	pollRate     time.Duration
 
-	targets []*targetRange
-
-	buttonKey *ads.ADS
-
+	buttonRegister *buttonRegister
 	currentChannel channel
+	targets        []*targetRange
 
 	ledPin rpio.Pin
 
-	pollRate time.Duration
-
 	close chan (struct{})
 
-	sampler *Sampler
-
-	buttonRegister *buttonRegister
+	speed      int
+	themeIndex map[channel]int
+	themes     map[channel][]theme
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
@@ -75,6 +73,30 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 	c.targets = append(c.targets, configureButton(ButtonMode, cfg.ModeTarget, cfg.Tolerance)...)
 	c.targets = append(c.targets, configureButton(ButtonColour, cfg.ColorTarget, cfg.Tolerance)...)
 	c.targets = append(c.targets, configureButton(ButtonSpeed, cfg.SpeedTarget, cfg.Tolerance)...)
+
+	// Test themes
+	c.themes = map[channel][]theme{
+		ChannelA: {
+			{
+				name:    "Theme 1",
+				colours: []string{"red", "green", "blue"},
+			},
+			{
+				name:    "Theme 2",
+				colours: []string{"red", "green", "blue"},
+			},
+		},
+		ChannelB: {
+			{
+				name:    "Theme 3",
+				colours: []string{"red", "green", "blue"},
+			},
+			{
+				name:    "Theme 4",
+				colours: []string{"red", "green", "blue"},
+			},
+		},
+	}
 
 	for _, opt := range opts {
 		opt(c)
@@ -117,9 +139,6 @@ func (c *Controller) Shutdown() {
 	// stop the sampler
 	c.sampler.Stop()
 	c.close <- struct{}{}
-	if err := c.buttonKey.Close(); err != nil {
-		fmt.Println(err)
-	}
 	rpio.Close()
 }
 
@@ -158,10 +177,22 @@ func (c *Controller) poll() {
 	c.buttonRegister = nil
 }
 
+func (c *Controller) nextSpeed() {
+	c.speed = (c.speed + 1) % 3
+}
+
+func (c *Controller) nextTheme() {
+	c.themeIndex[c.currentChannel] = (c.themeIndex[c.currentChannel] + 1) % len(c.themes[c.currentChannel])
+}
+
 func (c *Controller) handlePress(button button) {
 	switch button {
 	case ButtonChannel:
 		c.toggleChannel()
+	case ButtonMode:
+		c.nextTheme()
+	case ButtonSpeed:
+		c.nextSpeed()
 	}
 
 	c.publish(button, false)
@@ -190,7 +221,12 @@ func (c *Controller) setChannel(channel channel) {
 
 func (c *Controller) publish(button button, isHeld bool) {
 	// todo publish to all publishers
-	fmt.Printf("Channel %s: %s held: %t\n", c.currentChannel, button, isHeld)
+	currentTheme := c.themes[c.currentChannel][c.themeIndex[c.currentChannel]]
+	fmt.Printf("Channel %s: %s. held: %t. state: %v\n", c.currentChannel, button, isHeld, State{
+		Speed:  c.speed + 1,
+		Theme:  currentTheme.name,
+		Colour: currentTheme.colours[currentTheme.colourIndex],
+	})
 }
 
 func configureButton(b button, targets []int, tolerance int) []*targetRange {
