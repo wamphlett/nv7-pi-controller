@@ -8,6 +8,7 @@ import (
 
 	"github.com/wamphlett/nv7-pi-controller/config"
 	"github.com/wamphlett/nv7-pi-controller/pkg/controller"
+	"github.com/wamphlett/nv7-pi-controller/pkg/mqtt"
 )
 
 func main() {
@@ -19,7 +20,8 @@ func main() {
 
 	fmt.Println(cfg.Controller)
 
-	c := controller.New(cfg.Controller)
+	mqqtPublisher := mqtt.New("")
+	c := controller.New(cfg.Controller, controller.WithPublisher(mqqtPublisher))
 	c.Start()
 
 	// wait for shutdown

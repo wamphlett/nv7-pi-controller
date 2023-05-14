@@ -36,6 +36,10 @@ const (
 	ButtonColour  button = "COLOUR"
 )
 
+type Publisher interface {
+	Publish(event, button, channel string, state State)
+}
+
 type buttonRegister struct {
 	registerTime time.Time
 	button       button
@@ -71,6 +75,8 @@ type Controller struct {
 	speed        int
 	themeIndex   map[channel]int
 	themes       map[channel][]theme
+
+	publishers []Publisher
 }
 
 func New(cfg *config.Controller, opts ...Opt) *Controller {
@@ -86,6 +92,7 @@ func New(cfg *config.Controller, opts ...Opt) *Controller {
 			ChannelA: true,
 			ChannelB: true,
 		},
+		publishers: []Publisher{},
 	}
 
 	c.targets = configureButton(ButtonChannel, cfg.ChannelTarget, cfg.Tolerance)
