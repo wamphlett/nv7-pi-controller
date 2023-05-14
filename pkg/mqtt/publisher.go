@@ -8,9 +8,11 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 
+	"github.com/wamphlett/nv7-pi-controller/config"
 	"github.com/wamphlett/nv7-pi-controller/pkg/controller"
 )
 
+// payload represents the JSON payload which is published
 type payload struct {
 	Button  string
 	Channel string
@@ -19,15 +21,19 @@ type payload struct {
 	Speed   int
 }
 
+// Publisher defines the publisher methods
 type Publisher struct {
 	client mqtt.Client
 }
 
-func New(host string) *Publisher {
+// New creates a new MQTT Publisher
+func New(cfg *config.MQTTPublisher) *Publisher {
+	// connect to the MQTT broker
 	options := mqtt.NewClientOptions()
 	options.Servers = []*url.URL{
 		{
-			Host: host,
+			Scheme: cfg.Scheme,
+			Host:   cfg.Host,
 		},
 	}
 	client := mqtt.NewClient(options)
@@ -43,6 +49,7 @@ func New(host string) *Publisher {
 	}
 }
 
+// Publish publishes a JSON payload to the configured MQTT broker
 func (p *Publisher) Publish(event, button, channel string, state controller.State) {
 	marshaledPayload, err := json.Marshal(payload{
 		Button:  button,
@@ -53,9 +60,14 @@ func (p *Publisher) Publish(event, button, channel string, state controller.Stat
 	})
 	if err != nil {
 		fmt.Println("error:", err)
+		return
 	}
+
+	// publish a message to the MQTT broker
 	topic := fmt.Sprintf("NV7/CONTROLLER/%s", event)
 	t := p.client.Publish(topic, 1, true, marshaledPayload)
+
+	// Check for errors asynchronously
 	go func() {
 		_ = t.Wait()
 		if t.Error() != nil {

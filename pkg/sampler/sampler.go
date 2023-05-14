@@ -1,4 +1,4 @@
-package controller
+package sampler
 
 import (
 	"fmt"
@@ -10,11 +10,13 @@ import (
 	"github.com/grant-carpenter/go-ads"
 )
 
+// sample records the current sample readings
 type sample struct {
 	sum   int
 	count int
 }
 
+// Result returns the averaged reading from the ADS since the last read
 func (s *sample) Result() float64 {
 	if s.count == 0 || s.sum == 0 {
 		return 0
@@ -22,6 +24,7 @@ func (s *sample) Result() float64 {
 	return float64(s.sum / s.count)
 }
 
+// Sampler defines a sampler
 type Sampler struct {
 	sync.Mutex
 	currentSample *sample
@@ -30,13 +33,15 @@ type Sampler struct {
 	pollRate      time.Duration
 }
 
-func NewSampler() *Sampler {
+// New returns a configured Sampler
+func New() *Sampler {
 	s := &Sampler{
 		currentSample: &sample{},
 		stopSignal:    make(chan bool),
 		pollRate:      time.Millisecond * 5,
 	}
 
+	// initialise the ADS
 	err := ads.HostInit()
 	if err != nil {
 		fmt.Println(err)
@@ -51,11 +56,10 @@ func NewSampler() *Sampler {
 
 	s.ads.SetConfigGain(ads.ConfigGain2_3)
 
-	s.Start()
-
 	return s
 }
 
+// Start starts the sampler
 func (s *Sampler) Start() {
 	ticker := time.NewTicker(s.pollRate)
 	go func() {
@@ -71,10 +75,12 @@ func (s *Sampler) Start() {
 	}()
 }
 
+// Stop stops the sampler reading the ADS
 func (s *Sampler) Stop() {
 	s.stopSignal <- true
 }
 
+// sample reads the ADS value and adds it to the sample data
 func (s *Sampler) sample() {
 	s.Lock()
 	defer s.Unlock()
@@ -90,9 +96,11 @@ func (s *Sampler) sample() {
 	s.currentSample.count++
 }
 
+// Read returns the samples data
 func (s *Sampler) Read() float64 {
 	s.Lock()
 	defer s.Unlock()
+
 	result := s.currentSample.Result()
 	s.currentSample = &sample{}
 	return result
