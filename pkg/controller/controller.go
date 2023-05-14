@@ -281,6 +281,14 @@ func (c *Controller) publish(event event, button button) {
 		Theme:  currentTheme.name,
 		Colour: currentTheme.colours[currentTheme.colourIndex],
 	})
+
+	for _, publisher := range c.publishers {
+		publisher.Publish(string(event), string(button), string(c.currentChannel), State{
+			Speed:  c.speed + 1,
+			Theme:  currentTheme.name,
+			Colour: currentTheme.colours[currentTheme.colourIndex],
+		})
+	}
 }
 
 func configureButton(b button, targets []int, tolerance int) []*targetRange {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/opentracing/opentracing-go/log"
 	"github.com/wamphlett/nv7-pi-controller/pkg/controller"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -49,5 +50,11 @@ func (p *Publisher) Publish(event, button, channel string, state controller.Stat
 		fmt.Println("error:", err)
 	}
 	topic := fmt.Sprintf("NV7/CONTROLLER/%s", event)
-	p.client.Publish(topic, 1, true, marshaledPayload)
+	t := p.client.Publish(topic, 1, true, marshaledPayload)
+	go func() {
+		_ = t.Wait()
+		if t.Error() != nil {
+			fmt.Println(t.Error())
+		}
+	}()
 }
