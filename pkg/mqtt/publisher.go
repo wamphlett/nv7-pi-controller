@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-
-	"github.com/opentracing/opentracing-go/log"
-	"github.com/wamphlett/nv7-pi-controller/pkg/controller"
+	"os"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+
+	"github.com/wamphlett/nv7-pi-controller/pkg/controller"
 )
 
 type payload struct {
@@ -31,7 +31,12 @@ func New(host string) *Publisher {
 		},
 	}
 	client := mqtt.NewClient(options)
-	client.Connect()
+	t := client.Connect()
+	_ = t.Wait()
+	if t.Error() != nil {
+		fmt.Println(t.Error())
+		os.Exit(1)
+	}
 
 	return &Publisher{
 		client: client,
