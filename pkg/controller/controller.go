@@ -88,7 +88,7 @@ type Controller struct {
 	channelState map[channel]bool
 	speed        int
 	themeIndex   map[channel]int
-	themes       map[channel][]theme
+	themes       map[channel][]*theme
 
 	publishers []Publisher
 
@@ -111,6 +111,10 @@ func New(cfg *config.Controller, sampler Sampler, opts ...Opt) *Controller {
 			ChannelA: true,
 			ChannelB: true,
 		},
+		themes: map[channel][]*theme{
+			ChannelA: {},
+			ChannelB: {},
+		},
 		publishers: []Publisher{},
 	}
 
@@ -120,29 +124,9 @@ func New(cfg *config.Controller, sampler Sampler, opts ...Opt) *Controller {
 	c.targets = append(c.targets, configureTargets(ButtonColour, cfg.ColorTarget, cfg.Tolerance)...)
 	c.targets = append(c.targets, configureTargets(ButtonSpeed, cfg.SpeedTarget, cfg.Tolerance)...)
 
-	// Test themes
-	c.themes = map[channel][]theme{
-		ChannelA: {
-			{
-				name:    "Theme 1",
-				colours: []string{"red", "green", "blue"},
-			},
-			{
-				name:    "Theme 2",
-				colours: []string{"red", "green", "blue"},
-			},
-		},
-		ChannelB: {
-			{
-				name:    "Theme 3",
-				colours: []string{"red", "green", "blue"},
-			},
-			{
-				name:    "Theme 4",
-				colours: []string{"red", "green", "blue"},
-			},
-		},
-	}
+	// configure the themes
+	c.themes[ChannelA] = configureThemes(cfg.Themes.ChannelA)
+	c.themes[ChannelB] = configureThemes(cfg.Themes.ChannelB)
 
 	// apply controller options
 	for _, opt := range opts {
@@ -332,4 +316,26 @@ func configureTargets(b button, targets []int, tolerance int) []*targetRange {
 		}
 	}
 	return targetRanges
+}
+
+func configureThemes(themeMap map[string][]string) []*theme {
+	if themeMap == nil {
+		themeMap = make(map[string][]string)
+	}
+	if len(themeMap) == 0 {
+		themeMap["default"] = make([]string, 0)
+	}
+	themes := make([]*theme, len(themeMap))
+	i := 0
+	for themeName, colours := range themeMap {
+		if len(colours) == 0 {
+			colours = append(colours, "default")
+		}
+		themes[i] = &theme{
+			name:    themeName,
+			colours: colours,
+		}
+		i++
+	}
+	return themes
 }

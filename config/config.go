@@ -2,8 +2,12 @@ package config
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/sethvargo/go-envconfig"
+	"gopkg.in/yaml.v3"
 )
 
 // New creates config
@@ -12,6 +16,21 @@ func New() *Config {
 	if err := envconfig.Process(context.Background(), &cfg); err != nil {
 		panic("failed to extract default config: %s" + err.Error())
 	}
+
+	themeFilename := "./themes.yaml"
+	buf, err := ioutil.ReadFile(themeFilename)
+	if err != nil {
+		fmt.Println("Unable to read the theme.yaml file, please ensure it exists")
+		os.Exit(1)
+	}
+
+	cfg.Controller.Themes = &ControllerThemes{}
+	err = yaml.Unmarshal(buf, cfg.Controller.Themes)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
 	return &cfg
 }
 
@@ -38,6 +57,8 @@ type MQTTPublisher struct {
 
 // Controller defines the config for the controller
 type Controller struct {
+	Themes *ControllerThemes
+
 	// defines the GPIO pin number used to control the channel LED on
 	LEDPin int `env:"CONTROLLER_LED_PIN,default=13"`
 
@@ -61,4 +82,9 @@ type Controller struct {
 	// number provides a more responsive input but can cause some inconsistencies
 	// in the ADS reads which can lead to incorrect or missed button inputs
 	PollRate int `env:"CONTROLLER_HOLD_DURATION,default=30"`
+}
+
+type ControllerThemes struct {
+	ChannelA map[string][]string `yaml:"A"`
+	ChannelB map[string][]string `yaml:"B"`
 }
