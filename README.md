@@ -37,6 +37,7 @@ Example message
 ```json
 {
   "button": "MODE",
+  "channel": "A",
   "theme": "my-cool-theme",
   "colour": "red",
   "speed": 1
